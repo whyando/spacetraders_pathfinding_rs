@@ -1,5 +1,5 @@
 use spacetraders_pathfinding_rs::graph::L2Graph;
-use spacetraders_pathfinding_rs::systems::{System, Trait, Waypoint};
+use spacetraders_pathfinding_rs::systems::{System, Waypoint};
 
 fn main() {
     let test = std::fs::read_to_string("space_traders_tests/pathing/simple.json").unwrap();
@@ -27,7 +27,8 @@ fn main() {
         };
         systems.push(system);
     }
-    let graph = L2Graph::from_systems(&systems);
+    let _graph = L2Graph::from_systems(&systems);
+    todo!("Finish applying pathfinding algorithm to test cases");
 }
 
 pub mod test_models {

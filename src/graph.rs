@@ -34,7 +34,9 @@ use FlightMode::*;
 #[derive(Clone, Debug)]
 enum Edge {
     Jumpgate,
+    #[allow(dead_code)]
     Warp(FlightMode),
+    #[allow(dead_code)]
     Nav(FlightMode),
 }
 
@@ -45,8 +47,13 @@ fn dist(a: (i32, i32), b: (i32, i32)) -> i32 {
 }
 
 pub struct L2Graph {
+    // Nodes are either jumpgates, markets, or systems
     l2_nodes: Vec<Node>,
     l2_nodes_name: Vec<String>,
+    // Adjacency matrix:
+    // l2_adj[i] is list of edges from node i
+    // each edge is of the form (j, edge_type, duration, fuel_cost, destination_is_refuel)
+    // where i and j are indices of nodes in l2_nodes
     l2_adj: Vec<Vec<(usize, Edge, i32, i32, bool)>>,
 }
 
@@ -63,7 +70,7 @@ impl L2Graph {
     pub fn dijkstra(&self, src: &str) {
         let src = self.l2_nodes_name.iter().position(|x| x == src).unwrap();
         let start = Instant::now();
-        let result = dijkstra_all::<(usize, i32), i32, _, _>(&(src, MAX_FUEL), |&n| {
+        let _result = dijkstra_all::<(usize, i32), i32, _, _>(&(src, MAX_FUEL), |&n| {
             let node_idx = n.0;
             let node_fuel = n.1;
             self.l2_adj[node_idx]
@@ -90,6 +97,10 @@ impl L2Graph {
         let src = self.l2_nodes_name.iter().position(|x| x == src).unwrap();
         let dest = self.l2_nodes_name.iter().position(|x| x == dest).unwrap();
 
+        // Use straight line distance as a heuristic for A*
+        // (divided by 10 because that's the max travel speed of jump gates)
+        // the heuristic function is admissible - never overestimates the cost to reach the goal node
+        // therefore under this heuristic, A* should be guaranteed to find the shortest path
         let dist_to_dest = self
             .l2_nodes
             .iter()
@@ -110,7 +121,9 @@ impl L2Graph {
 
         let start = Instant::now();
         let result = astar::<(usize, i32), i32, _, _, _, _>(
+            // Starting node + starting fuel
             &(src, START_FUEL),
+            // Successors function
             |&n| {
                 let node_idx = n.0;
                 let node_fuel = n.1;
@@ -130,7 +143,9 @@ impl L2Graph {
                         }
                     })
             },
+            // Heuristic function
             |&n| dist_to_dest[n.0] / 10,
+            // Goal test
             |&n| n.0 == dest,
         );
         let duration = start.elapsed();
@@ -237,7 +252,7 @@ fn build_l2(
         }
     }
 
-    println!("{:#?}", charted_systems.len());
+    println!("Loaded {:#?} systems", charted_systems.len());
     // count each enum type
     let mut jumpgate_waypoints = 0;
     let mut market_waypoints = 0;
@@ -249,6 +264,7 @@ fn build_l2(
             System(_) => systems_nodes += 1,
         }
     }
+    println!("Generated {:#?} l2 nodes", l2_nodes.len());
     println!(
         "jump: {:#?} market: {:#?} system: {:#?} total: {:#?}",
         jumpgate_waypoints,
